@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actionsname: Build installable APK
-
 on:
   push:
     branches: [main]
