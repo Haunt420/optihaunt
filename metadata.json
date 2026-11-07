@@ -1,0 +1,6 @@
+{
+  "name": "OptiHaunt",
+  "description": "Continuous AI image prompt evolution with prompt queueing, voting, and steerable instruction refinement.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
