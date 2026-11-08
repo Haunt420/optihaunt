@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,11 +12,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -110,6 +118,7 @@ fun OptiHauntMainScreen(viewModel: OptiHauntViewModel) {
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal),
         topBar = {
             TopBar(
                 session = session,
@@ -162,7 +171,7 @@ fun OptiHauntMainScreen(viewModel: OptiHauntViewModel) {
                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
-                        .padding(bottom = 76.dp)
+                        .padding(bottom = 8.dp, end = 8.dp)
                         .testTag("jump_newest_button")
                 )
             }
@@ -268,38 +277,87 @@ fun OptiHauntMainScreen(viewModel: OptiHauntViewModel) {
                     }
                 }
 
-                // Wide screen permanent side queue or slide-over drawer on mobile
-                if (isWideScreen || showSidebar) {
-                    AnimatedVisibility(
-                        visible = isWideScreen || showSidebar,
-                        enter = slideInHorizontally(initialOffsetX = { it }),
-                        exit = slideOutHorizontally(targetOffsetX = { it })
+                // Wide screen permanent side queue
+                if (isWideScreen) {
+                    PromptQueueSidebar(
+                        statusMessage = statusMessage,
+                        upcomingPrompts = upcomingPrompts,
+                        activeSteers = activeSteers,
+                        batchRule = session?.batchRule.orEmpty(),
+                        promptPrefix = session?.promptPrefix.orEmpty(),
+                        promptSuffix = session?.promptSuffix.orEmpty(),
+                        editingPromptId = editingPromptId,
+                        onAddPrompt = { viewModel.addManualPrompt(it) },
+                        onAddSteer = { viewModel.addThemeSteer(it) },
+                        onRemoveSteer = { viewModel.removeThemeSteer(it) },
+                        onUpdateRules = { rule, pref, suff ->
+                            viewModel.updateRulesAndFixes(rule, pref, suff)
+                        },
+                        onStartEditingPrompt = {
+                            viewModel.scheduler.setEditingPrompt(it)
+                        },
+                        onDoneEditingPrompt = { id, newText ->
+                            viewModel.updatePromptText(id, newText)
+                        },
+                        onDeletePrompt = { viewModel.deletePrompt(it) },
+                        onClearUpcomingQueue = { viewModel.clearUpcomingQueue() },
+                        onClearNonSteeredQueue = { viewModel.clearNonSteeredQueue() },
+                        onCloseSidebar = { showSidebar = false },
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(340.dp)
+                    )
+                }
+            }
+
+            // Mobile slide-over drawer with backdrop scrim (phone screens like 1560x720)
+            if (!isWideScreen) {
+                AnimatedVisibility(
+                    visible = showSidebar,
+                    enter = slideInHorizontally(initialOffsetX = { it }),
+                    exit = slideOutHorizontally(targetOffsetX = { it })
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.6f))
+                            .clickable { showSidebar = false }
                     ) {
-                        PromptQueueSidebar(
-                            statusMessage = statusMessage,
-                            upcomingPrompts = upcomingPrompts,
-                            activeSteers = activeSteers,
-                            batchRule = session?.batchRule.orEmpty(),
-                            promptPrefix = session?.promptPrefix.orEmpty(),
-                            promptSuffix = session?.promptSuffix.orEmpty(),
-                            editingPromptId = editingPromptId,
-                            onAddPrompt = { viewModel.addManualPrompt(it) },
-                            onAddSteer = { viewModel.addThemeSteer(it) },
-                            onRemoveSteer = { viewModel.removeThemeSteer(it) },
-                            onUpdateRules = { rule, pref, suff ->
-                                viewModel.updateRulesAndFixes(rule, pref, suff)
-                            },
-                            onStartEditingPrompt = {
-                                viewModel.scheduler.setEditingPrompt(it)
-                            },
-                            onDoneEditingPrompt = { id, newText ->
-                                viewModel.updatePromptText(id, newText)
-                            },
-                            onDeletePrompt = { viewModel.deletePrompt(it) },
-                            onClearUpcomingQueue = { viewModel.clearUpcomingQueue() },
-                            onClearNonSteeredQueue = { viewModel.clearNonSteeredQueue() },
-                            onCloseSidebar = { showSidebar = false }
-                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .fillMaxHeight()
+                                .widthIn(max = 340.dp)
+                                .fillMaxWidth(0.9f)
+                                .clickable(enabled = false) {}
+                        ) {
+                            PromptQueueSidebar(
+                                statusMessage = statusMessage,
+                                upcomingPrompts = upcomingPrompts,
+                                activeSteers = activeSteers,
+                                batchRule = session?.batchRule.orEmpty(),
+                                promptPrefix = session?.promptPrefix.orEmpty(),
+                                promptSuffix = session?.promptSuffix.orEmpty(),
+                                editingPromptId = editingPromptId,
+                                onAddPrompt = { viewModel.addManualPrompt(it) },
+                                onAddSteer = { viewModel.addThemeSteer(it) },
+                                onRemoveSteer = { viewModel.removeThemeSteer(it) },
+                                onUpdateRules = { rule, pref, suff ->
+                                    viewModel.updateRulesAndFixes(rule, pref, suff)
+                                },
+                                onStartEditingPrompt = {
+                                    viewModel.scheduler.setEditingPrompt(it)
+                                },
+                                onDoneEditingPrompt = { id, newText ->
+                                    viewModel.updatePromptText(id, newText)
+                                },
+                                onDeletePrompt = { viewModel.deletePrompt(it) },
+                                onClearUpcomingQueue = { viewModel.clearUpcomingQueue() },
+                                onClearNonSteeredQueue = { viewModel.clearNonSteeredQueue() },
+                                onCloseSidebar = { showSidebar = false },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }
