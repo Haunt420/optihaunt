@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build debug APK
+    name: Build-APK
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
